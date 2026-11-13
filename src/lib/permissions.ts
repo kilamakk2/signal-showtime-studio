@@ -1,0 +1,45 @@
+import type { Database } from "@/lib/db-types";
+
+export type AppRole = Database["public"]["Enums"]["app_role"];
+
+export const ROLE_LABELS: Record<AppRole, string> = {
+  super_admin: "Super Admin",
+  station_manager: "Station Manager",
+  broadcast_operator: "Broadcast Operator",
+  media_manager: "Media Manager",
+  graphics_designer: "Graphics Designer",
+  advertising_manager: "Advertising Manager",
+  analyst: "Analyst",
+  playout_engine: "Playout engine",
+};
+
+export const ALL_ROLES = Object.keys(ROLE_LABELS) as AppRole[];
+
+/** Roles the Super Admin can give to people. Super Admin itself is fixed to one email and never given out. */
+export const ASSIGNABLE_ROLES = ALL_ROLES.filter((r) => r !== "super_admin" && r !== "playout_engine");
+
+/**
+ * UI capability map. firestore.rules enforce the same rules in the database;
+ * this map only decides which controls are shown as enabled.
+ */
+export const CAPABILITIES = {
+  control: ["super_admin", "station_manager", "broadcast_operator"],
+  emergency: ["super_admin", "station_manager"],
+  media: ["super_admin", "station_manager", "media_manager", "advertising_manager"],
+  schedule: ["super_admin", "station_manager", "advertising_manager"],
+  playlists: ["super_admin", "station_manager", "media_manager", "advertising_manager"],
+  graphics: ["super_admin", "station_manager", "graphics_designer"],
+  live: ["super_admin", "station_manager", "broadcast_operator"],
+  settings: ["super_admin", "station_manager"],
+  users: ["super_admin"],
+  engine: ["super_admin"],
+  audit: ["super_admin", "station_manager"],
+  endpoints: ["super_admin", "station_manager", "broadcast_operator"],
+} as const satisfies Record<string, readonly AppRole[]>;
+
+export type Capability = keyof typeof CAPABILITIES;
+
+export function can(roles: readonly AppRole[] | null | undefined, cap: Capability) {
+  if (!roles?.length) return false;
+  return roles.some((r) => (CAPABILITIES[cap] as readonly AppRole[]).includes(r));
+}
